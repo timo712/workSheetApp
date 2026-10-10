@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Allow the camera to save photos in the worksheet_photos folder-->
+    <files-path
+        name="worksheet_photos"
+        path="worksheet_photos/" />
+</paths>
