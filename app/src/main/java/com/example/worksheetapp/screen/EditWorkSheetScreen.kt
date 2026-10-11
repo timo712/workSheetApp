@@ -76,6 +76,17 @@ fun EditWorkSheetScreen(
         }
         return
     }
+
+    // keep the same stream during ordinary screen redraw.
+    val photosFlow = remember(viewModel, sheetId) {
+        viewModel.getPhotosForWorksheet(sheetId)
+    }
+
+    // Watch the stream as Compose state.
+    val photos by photosFlow.collectAsState(
+        initial = emptyList()
+    )
+
     // this how the user can maked edits
     var editedCustomer by remember {
         mutableStateOf(worksheet.customer)
