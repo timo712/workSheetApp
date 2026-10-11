@@ -51,6 +51,9 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
 
+    // read Latin-script text,  Including English,  from photos
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+
     // Room components
     implementation("androidx.room:room-runtime:2.6.1")
     ksp("androidx.room:room-compiler:2.6.1")  // Critical annotation processor
