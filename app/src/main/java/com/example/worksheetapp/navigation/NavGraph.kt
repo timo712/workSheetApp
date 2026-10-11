@@ -12,6 +12,10 @@ import com.example.worksheetapp.screen.AddWorkSheetScreen
 import com.example.worksheetapp.screen.EditWorkSheetScreen
 import com.example.worksheetapp.screen.HomeScreen
 import com.example.worksheetapp.screen.CameraScreen
+import androidx.compose.runtime.remember
+import androidx.lifecycle.viewmodel.compose.viewModel
+import  com.example.worksheetapp.viewmodel.WorkSheetViewModel
+
 
 // this composable controls navigation between screens
 
@@ -55,8 +59,26 @@ fun AppNavigation
         }
 
         //Camera screen
-        composable("camera"){
-            CameraScreen()
+        composable("camera") { cameraEntry ->
+
+            // Get the worksheet form that open the camera
+            val addEntry = remember(cameraEntry) {
+                navController.getBackStackEntry("add")
+            }
+
+            // Use the same ViewModel as AddWorkSheetScreen
+            val workSheetViewModel:  WorkSheetViewModel = viewModel(
+                viewModelStoreOwner = addEntry
+            )
+            CameraScreen(
+                onUsePhoto = { uri ->
+                    // Attach the selected photo to th worksheet form
+                    workSheetViewModel.addPhoto(uri.toString())
+
+                    // return to the form
+                    navController.popBackStack()
+                }
+            )
         }
         // screen used to edit an existing worksheet
         composable(
