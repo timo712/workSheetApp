@@ -32,10 +32,24 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import java.util.UUID
+import  android.net.Uri
+import android.widget.ImageView
+import androidx.compose.ui.viewinterop.AndroidView
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import com.google.mlkit.vision.common.InputImage
+import com.google.mlkit.vision.text.TextRecognition
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 
 @Composable
-fun CameraScreen() {
+fun CameraScreen(
+    onUsePhoto: (Uri) -> Unit
+) {
 
     // Gives us access to the android app/context
     val context = LocalContext.current
@@ -67,7 +81,7 @@ fun CameraScreen() {
     LaunchedEffect(Unit) {
 
         // ! means Not
-        // so : if we dont have camera permission ...
+        // so : if we don't have camera permission ...
         if (!hasCameraPermission) {
             permissionLauncher.launch(
                 Manifest.permission.CAMERA
@@ -102,9 +116,74 @@ fun CameraScreen() {
     // Prevent repeated taps while a photo is being saved
 
     var isSaving by remember { mutableStateOf(false) }
-    if (hasCameraPermission) {
+    // this only displays camera when permission is granted
+
+    // prevents repeated taps while processing.
+    var isReading by remember { mutableStateOf(false) }
+
+    // This stores the saved photo's address and update
+    var capturedPhotoUri by remember {
+        mutableStateOf<Uri?>(null)
+    }
+
+    var recognizedText by remember {
+        mutableStateOf<String?>(null)
+    }
+
+
+
+    val photoUrl = capturedPhotoUri
+
+    if (photoUrl != null){
+        // A photo is selected : show it and the Retake button.
+
+        Box(
+            modifier = Modifier.fillMaxSize()
+        ){
+            AndroidView(
+                factory = { context ->
+                    ImageView(context).apply{
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                    }
+                },
+                update = { imageView ->
+                    if( imageView.tag != photoUrl){
+                        imageView.setImageURI(photoUrl)
+                        imageView.tag = photoUrl
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            Row (
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ){
+                Button(
+                    onClick = {
+                        capturedPhotoUri = null
+                        recognizedText = null
+                    },
+                    enabled = !isReading
+                ) {
+                    Text("Retake")
+                }
+                Button(
+                    onClick = {
+                        onUsePhoto(photoUrl)
+                    }
+                ) {
+                    Text("Use photo")
+                }
+            }
+        }
+    } else if (hasCameraPermission) {
         Box(modifier = Modifier.fillMaxSize())
         {
+            // the existing composable displays the camera preview
             CameraPreview(
                 controller = controller,
                 modifier = Modifier.fillMaxSize()
@@ -113,9 +192,13 @@ fun CameraScreen() {
             Button(
                 onClick = {
                     isSaving = true
+
                     takePhoto(
                         context = context,
                         controller = controller,
+                        onPhotoSaved = { uri ->
+                            capturedPhotoUri = uri
+                        },
                         onFinished = { isSaving = false }
                     )
                 },
@@ -123,19 +206,66 @@ fun CameraScreen() {
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding()
+                    .padding(16.dp)
             ) {
                 Text(if (isSaving) "saving.." else "Take photo")
             }
         }
+    } else {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ){
+            Text("Camera permission is needed to take photo.")
+        }
+    }
+
+    val textToShow = recognizedText
+
+    if (textToShow != null){
+        AlertDialog(
+            onDismissRequest = {
+                recognizedText = null
+            },
+            title = {
+                Text("Worksheet text")
+            },
+            text = {
+                Text(
+                    text = if (textToShow.isBlank()) {
+                        "No text found. Try a clearer photo"
+                    } else {
+                        textToShow
+                    },
+                    modifier = Modifier.verticalScroll(
+                        rememberScrollState()
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        recognizedText = null
+                    }
+                ) {
+                    Text("close")
+                }
+            }
+        )
     }
 }
 
 private fun takePhoto(
     context: Context,
     controller: LifecycleCameraController,
+    onPhotoSaved: (Uri) -> Unit,
     onFinished: () -> Unit
+
 ){
+
+    // This implementation saves to the gallery on Android 10 or new
     if(Build.VERSION.SDK_INT < Build.VERSION_CODES.Q)
     {
         Toast.makeText(
@@ -175,12 +305,21 @@ private fun takePhoto(
             outputOptions,
             ContextCompat.getMainExecutor(context),
             object : ImageCapture.OnImageSavedCallback{
+                // This would make the photo appear after it was then taken.
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    Toast.makeText(
-                        context,
-                        "Photo saved to Picture/WorksheetApp",
-                        Toast.LENGTH_LONG
-                    ).show()
+
+                    val savedUri = outputFileResults.savedUri
+
+                    if (savedUri != null){
+                        onPhotoSaved(savedUri)
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "Photo saved, but its address wasn't returned",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+
                     onFinished()
                 }
 
@@ -202,5 +341,41 @@ private fun takePhoto(
             Toast.LENGTH_LONG
         ).show()
         onFinished()
+    }
+}
+
+private  fun readTextFromPhoto(
+    context: Context,
+    photoUri: Uri,
+    onSuccess: (String) -> Unit,
+    onError: (Exception) -> Unit
+){
+
+    // create a recognizer for Latin-script text, including english
+
+    val recognizer = TextRecognition.getClient(
+        TextRecognizerOptions.DEFAULT_OPTIONS
+    )
+
+    try {
+        // Prepare the save for text
+        val image = InputImage.fromFilePath(context,photoUri)
+
+        // process the photo and return the result asynchrouosly
+        recognizer.process(image)
+            .addOnSuccessListener { result ->
+                onSuccess(result.text)
+            }
+
+            .addOnFailureListener {  exception ->
+                onError(exception)
+            }
+
+            .addOnCompleteListener {
+                recognizer.close()
+            }
+    } catch (exception: Exception){
+        recognizer.close()
+        onError(exception)
     }
 }
