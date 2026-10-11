@@ -15,6 +15,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import com.example.worksheetapp.data.Worksheetphoto
+import kotlinx.coroutines.flow.Flow //a stream of values that can be update over time
+
 
 class WorkSheetViewModel(
     application: Application
@@ -108,6 +111,13 @@ class WorkSheetViewModel(
                 photoPaths = (current.photoPaths + path).distinct()
             )
         }
+    }
+
+    // Retrieves saved photos from a particular worksheet
+    fun getPhotosForWorksheet(
+        worksheetId: Int
+    ): Flow<List<Worksheetphoto>>{
+        return  repository.getPhotosForWorksheet(worksheetId)
     }
 
     fun validateAndAddWorkSheet() {
