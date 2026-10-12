@@ -424,6 +424,54 @@ fun EditWorkSheetScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        // Display each attached photo
+
+        // leaving space above the photo section
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Attached photos",
+            style = MaterialTheme.typography.titleMedium
+        )
+        if (photos.isEmpty()){
+            //Show a message when the list is empty.
+            Text("No photos attached.")
+        } else {
+            // create one image display for each saved photo
+            photos.forEach {  photo ->
+                Spacer(modifier = Modifier.height(12.dp))
+
+                AndroidView(
+                    factory =  { context ->
+                        // create the Android image component .
+                        ImageView(context).apply {
+                            // Fit the whole photo without stretching it.
+                            scaleType = ImageView.ScaleType.FIT_CENTER
+
+                            // Describe the image for accessibility
+                            contentDescription = "Worksheet attachment"
+                        }
+                    },
+                    update = { imageView ->
+                        // Only reload when this components photo changes.
+                        if(imageView.tag != photo.photoPath){
+                            // Convert the save address into Uri
+                            val photoUri = Uri.parse(photo.photoPath)
+
+                            //Display the image at the address
+                            imageView.setImageURI(photoUri)
+
+                            //Remember which address this component display
+                            imageView.tag = photo.photoPath
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(250.dp)
+                )
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
