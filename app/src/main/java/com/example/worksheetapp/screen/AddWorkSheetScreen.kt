@@ -37,6 +37,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.worksheetapp.viewmodel.WorkSheetViewModel
+import android.net.Uri
+import android.widget.ImageView
+import androidx.compose.ui.viewinterop.AndroidView
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
