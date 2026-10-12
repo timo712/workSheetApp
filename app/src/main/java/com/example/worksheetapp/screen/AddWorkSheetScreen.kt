@@ -393,6 +393,31 @@ fun AddWorkSheetScreen(
                     // show how many photos are attached.
                     Text("${state.photoPaths.size} photos attached")
 
+                    // show each photo attached to the form before saving the worksheet.
+                    state.photoPaths.forEach { photoPath ->
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        AndroidView(
+                            factory = { context ->
+                                ImageView(context).apply {
+                                    // Fit the whole picture without stretching it .
+                                    scaleType = ImageView.ScaleType.FIT_CENTER
+                                    contentDescription = "Worksheet attachment"
+                                }
+                            },
+                            update = { imageView ->
+                                // Load the picture only when its address changes.
+                                if( imageView.tag != photoPath){
+                                    imageView.setImageURI(Uri.parse(photoPath))
+                                    imageView.tag = photoPath
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(240.dp)
+                        )
+                    }
+
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Button(
