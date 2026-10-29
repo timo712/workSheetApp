@@ -39,7 +39,14 @@ import androidx.navigation.NavController
 import com.example.worksheetapp.viewmodel.WorkSheetViewModel
 import android.net.Uri
 import android.widget.ImageView
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.viewinterop.AndroidView
+
+private val Navy = Color(0xFF14243d)
+private val Teal = Color(0xFF117F75)
+private val PageBackground = Color(0xFFF36FB)
+private val BorderColor = Color(0xFFDCE4EF)
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,6 +59,8 @@ fun AddWorkSheetScreen(
 
     // Watch whether saving was successful
     val success by viewModel.addWorkSheetSuccess.collectAsState()
+
+
 
 
     Scaffold(
@@ -474,5 +483,34 @@ private fun BooleanRow(
             checked = checked,
             onCheckedChange = onCheckedChange
         )
+    }
+}
+
+@Composable
+fun WorkSheetSection(
+    title: String,
+    content: @Composable() -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
+
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 4.dp
+        ),
+
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)
+        ) {
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography
+            )
+        }
     }
 }
