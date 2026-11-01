@@ -1,7 +1,5 @@
 package com.example.worksheetapp.screen
 
-
-
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,12 +37,25 @@ import androidx.navigation.NavController
 import com.example.worksheetapp.viewmodel.WorkSheetViewModel
 import android.net.Uri
 import android.widget.ImageView
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.viewinterop.AndroidView
+
 
 private val Navy = Color(0xFF14243d)
 private val Teal = Color(0xFF117F75)
-private val PageBackground = Color(0xFFF36FB)
+private val PageBackground = Color(0xFFF3F6FB)
 private val BorderColor = Color(0xFFDCE4EF)
 
 
@@ -60,14 +71,30 @@ fun AddWorkSheetScreen(
     // Watch whether saving was successful
     val success by viewModel.addWorkSheetSuccess.collectAsState()
 
+    LaunchedEffect(success) {
 
+        if(success) {
+            navController.navigate("home"){
+                popUpTo("add") {
+                    inclusive = true
+                }
+            }
+            viewModel.resetSuccessState()
+        }
+    }
 
 
     Scaffold(
+
+        containerColor =  PageBackground,
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Add Worksheet")
+                    Text(
+                        text = "Add Worksheet",
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 },
                 navigationIcon = {
                     IconButton(
@@ -77,11 +104,45 @@ fun AddWorkSheetScreen(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription =  "Back"
+                            contentDescription =  "Back",
+                            tint = Color.White
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Navy
+                )
             )
+        },
+        // Save Button at Bottom
+        bottomBar = {
+            Surface(
+                color = Color.White,
+                shadowElevation = 8.dp
+            ){
+                Button(
+                    onClick = {
+                        viewModel.validateAndAddWorkSheet()
+                    },
+                    enabled =  !state.isSaving && !success,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .navigationBarsPadding()
+                        .padding(16.dp)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Teal
+                    )
+                ) {
+                    Text(
+                        if (state.isSaving) "Saving.."
+                        else "Save Worksheet",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
         }
     ) { paddingValuse ->
         Column(
@@ -90,377 +151,420 @@ fun AddWorkSheetScreen(
                 .padding(paddingValuse)
                 .padding(16.dp)
                 .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
+            //Worksheet header Card
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 6.dp
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Navy
                 )
             ) {
                 Column(
-                    modifier = Modifier.padding(16.dp)
+                    modifier = Modifier.padding(20.dp)
                 ) {
                     Text(
                         text = "worksheet Information",
-                        style = MaterialTheme.typography.titleLarge
+                        style = MaterialTheme.typography.titleLarge,
+                        color = Color.White,
+                        fontWeight =  FontWeight.Bold
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(Modifier.height(6.dp))
 
-                    // Display validation errors
-                    state.errors.forEach { error ->
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                        )
+
+                    Text(
+                        text = "Enter the repair details below",
+                        color = Color(0xFFCED8E6)
+                    )
+                }
+            }
+
+            // Validation Errors
+
+            if ( state.errors.isNotEmpty()) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFFFE8E8)
+                    )
+                ) {
+                    Column( modifier = Modifier.padding(16.dp)
+                    ){
+                        state.errors.forEach { error ->
+
+                            Text(
+                                text = error,
+                                color = Color(0xFFB3261E)
+                            )
+                        }
                     }
+                }
+            }
 
-                    OutlinedTextField(
-                        value = state.customer,
-                        onValueChange = {
-                            viewModel.updateFormState(customer = it)
-                        },
-                        label = {
-                            Text("Customer")
-                        },
-                        modifier = Modifier.fillMaxWidth()
+            // Section 1: Customer Information
+
+            WorkHubSection("Customer & Work Order")
+            {
+
+                WorkHubField(
+                    label = "Customer",
+                    value = state.customer,
+                    onValueChange = {
+                        viewModel.updateFormState(customer = it)
+                    }
+                )
+
+
+                WorkHubField(
+                    label = "Description",
+                    value = state.description,
+                    onValueChange = {
+                        viewModel.updateFormState(description = it)
+                    },
+                    singleLine = false
+                )
+
+                WorkHubField(
+                    label = "Work Order",
+                    value = state.workOrder,
+                    onValueChange = {
+                        viewModel.updateFormState(workOrder = it)
+                    }
+                )
+            }
+
+            // Section 2: Cylinder Details
+
+            WorkHubSection("Cylinder Details"){
+
+                WorkHubField(
+                    label = "Technician",
+                    value = state.tech,
+                    onValueChange = {
+                        viewModel.updateFormState(tech = it)
+                    }
+                )
+
+                WorkHubField(
+                    label = "Supervisor",
+                    value = state.supervisor,
+                    onValueChange = {
+                        viewModel.updateFormState(supervisor = it)
+                    }
+                )
+
+                WorkHubField(
+                    label = "Tag",
+                    value = state.tag,
+                    onValueChange = {
+                        viewModel.updateFormState(tag = it)
+                    }
+                )
+
+                WorkHubField(
+                    label = "Rod Diameter",
+                    value = state.rodDia,
+                    onValueChange = {
+                        viewModel.updateFormState( rodDia =  it)
+                    },
+                    numeric = true
+                )
+
+                WorkHubField(
+                    label = "Rod Length",
+                    value = state.rodLgth,
+                    onValueChange = {
+                        viewModel.updateFormState( rodLgth = it )
+                    },
+                    numeric = true
+                )
+
+                WorkHubField(
+                    label = "Rod Condition",
+                    value = state.rodCondition,
+                    onValueChange = {
+                        viewModel.updateFormState(rodCondition = it)
+                    }
+                )
+
+
+                WorkHubField(
+                    label = "Bore Diameter",
+                    value = state.boreDia,
+                    onValueChange = {
+                        viewModel.updateFormState(boreDia = it)
+                    },
+                    numeric = true
+                )
+
+                WorkHubField(
+                    label = "Bore Condition",
+                    value = state.boreCondition,
+                    onValueChange = {
+                        viewModel.updateFormState(boreCondition = it )
+                    }
+                )
+            }
+
+
+            // Section 3:  Components
+            WorkHubSection("Components & Coditions")
+            {
+                BooleanRow(
+                    label = "Gland",
+                    checked =  state.gland,
+                    onCheckedChange = {
+                        viewModel.updateFormState(gland = it)
+                    }
+                )
+
+                BooleanRow(
+                    label = "Eyes",
+                    checked = state.eyes,
+                    onCheckedChange = {
+                        viewModel.updateFormState(eyes = it)
+                    }
+                )
+
+                BooleanRow(
+                    label = "Rod Threads",
+                    checked = state.rodThreads,
+                    onCheckedChange = {
+                        viewModel.updateFormState( rodThreads = it)
+                    }
+                )
+
+                BooleanRow(
+                    label = "Hoses",
+                    checked = state.hoses,
+                    onCheckedChange = {
+                        viewModel.updateFormState( hoses = it)
+                    }
+                )
+
+                BooleanRow(
+                    label = "Pin Wipers",
+                    checked = state.pinWipers,
+                    onCheckedChange = {
+                        viewModel.updateFormState(pinWipers = it)
+                    }
+                )
+
+                BooleanRow(
+                    label = "Fittings",
+                    checked = state.fittings,
+                    onCheckedChange = {
+                        viewModel.updateFormState(fittings =  it)
+                    },
+                )
+
+                BooleanRow(
+                    label = "Machined",
+                    checked = state.isMachined,
+                    onCheckedChange = {
+                        viewModel.updateFormState(isMachined = it)
+                    }
+                )
+            }
+
+            // section 4: Pricing
+            WorkHubSection("Parts & Labour")
+            {
+
+                WorkHubField(
+                    label = "Seal Kit Price",
+                    value = state.sealKitPrice,
+                    onValueChange = {
+                        viewModel.updateFormState(
+                            sealKitPrice = it
+                        )
+                    },
+                    numeric = true
+                )
+
+
+                WorkHubField(
+                    label = "Washers Price",
+                    value = state.washersPrice,
+                    onValueChange = {
+                        viewModel.updateFormState(
+                            washersPrice = it
+                        )
+                    },
+                    numeric = true
+                )
+
+                WorkHubField(
+                    label ="Fittings Price",
+                    value = state.fittingsPrice,
+                    onValueChange = {
+                        viewModel.updateFormState(
+                            fittingsPrice = it
+                        )
+                    },
+                    numeric = true
+                )
+
+                WorkHubField(
+                    label = "Total Labour",
+                    value = state.totalLabour,
+                    onValueChange = {
+                        viewModel.updateFormState(
+                            totalLabour = it
+                        )
+                    },
+                    numeric = true
+                )
+            }
+
+            // Section 5: Photos
+
+            WorkHubSection("Attached Photos"){
+
+                Text(
+                    text = "${state.photoPaths.size} photos attached",
+                    color = Color.Gray
+                )
+
+                OutlinedButton(
+                    onClick = {
+                        navController.navigate("camera")
+                    },
+                    enabled = !state.isSaving && !success,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Teal
                     )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = state.description,
-                        onValueChange = {
-                            viewModel.updateFormState(description = it)
+                ) {
+                    Text(
+                        text = if ( state.photoPaths.isEmpty()){
+                            "+ Take Photo"
+                        } else {
+                            "+ add another Photo"
                         },
-                        label = {
-                            Text("Description")
-                        },
-                        modifier = Modifier.fillMaxWidth()
+                        fontWeight = FontWeight.SemiBold
                     )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = state.tech,
-                        onValueChange = {
-                            viewModel.updateFormState(tech = it)
-                        },
-                        label = {
-                            Text("Technician ")
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = state.supervisor,
-                        onValueChange = {
-                            viewModel.updateFormState(supervisor = it)
-                        },
-                        label = {
-                            Text("Supervisor")
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = state.workOrder,
-                        onValueChange = {
-                            viewModel.updateFormState(workOrder = it)
-                        },
-                        label = {
-                            Text("work Order")
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = state.tag,
-                        onValueChange = {
-                            viewModel.updateFormState(tag = it)
-                        },
-                        label = {
-                            Text("Tag")
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = state.rodDia,
-                        onValueChange = {
-                            viewModel.updateFormState(rodDia = it)
-                        },
-                        label = {
-                            Text("Rod Diameter")
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                }
 
 
-                    OutlinedTextField(
-                        value = state.rodLgth,
-                        onValueChange = {
-                            viewModel.updateFormState(rodLgth = it)
-                        },
-                        label = {
-                            Text("Rod Length")
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
 
-                    OutlinedTextField(
-                        value = state.rodCondition,
-                        onValueChange = {
-                            viewModel.updateFormState(rodCondition = it)
-                        },
-                        label = {
-                            Text("Rod Condition")
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
+                // SHOW ALL ATTACHED PHOTOS
+                state.photoPaths.forEach { photoPath ->
 
-                    OutlinedTextField(
-                        value = state.boreDia,
-                        onValueChange = {
-                            viewModel.updateFormState(boreDia = it)
-                        },
-                        label = {
-                            Text("Bore Dia")
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = state.boreCondition,
-                        onValueChange = {
-                            viewModel.updateFormState(boreCondition = it)
-                        },
-                        label = {
-                            Text("Bore Condition")
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    BooleanRow(
-                        label = "Gland",
-                        checked = state.gland,
-                        onCheckedChange = {
-                            viewModel.updateFormState(gland = it)
-                        }
-                    )
-
-                    BooleanRow(
-                        label = "Eyes",
-                        checked = state.eyes,
-                        onCheckedChange = {
-                            viewModel.updateFormState(eyes = it)
-                        }
-                    )
-
-                    BooleanRow(
-                        label = "Rod Threads ",
-                        checked = state.rodThreads,
-                        onCheckedChange = {
-                            viewModel.updateFormState(rodThreads = it)
-                        }
-                    )
-
-                    BooleanRow(
-                        label = "Hoses",
-                        checked = state.hoses,
-                        onCheckedChange = {
-                            viewModel.updateFormState(hoses = it)
-                        }
-                    )
-
-                    BooleanRow(
-                        label = "Pin Wiper",
-                        checked = state.pinWipers,
-                        onCheckedChange = {
-                            viewModel.updateFormState(pinWipers = it)
-                        }
-                    )
-                    BooleanRow(
-                        label = "Fittings",
-                        checked = state.fittings,
-                        onCheckedChange = {
-                            viewModel.updateFormState(fittings = it )
-                        }
-                    )
-
-                    BooleanRow(
-                        label = "Machined",
-                        checked = state.isMachined,
-                        onCheckedChange = {
-                            viewModel.updateFormState(isMachined = it)
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = state.sealKitPrice,
-                        onValueChange = {
-                            viewModel.updateFormState(
-                                sealKitPrice = it
-                            )
-                        },
-                        label = {
-                            Text("Seal Kit Price ")
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = state.washersPrice,
-                        onValueChange = {
-                            viewModel.updateFormState(
-                                washersPrice = it
-                            )
-                        },
-                        label = {
-                            Text("wisher Price")
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = state.fittingsPrice,
-                        onValueChange = {
-                            viewModel.updateFormState(
-                                fittingsPrice = it
-                            )
-                        },
-                        label = {
-                            Text("Fittings Price")
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    OutlinedTextField(
-                        value = state.totalLabour,
-                        onValueChange = {
-                            viewModel.updateFormState(
-                                totalLabour = it
-                            )
-                        },
-                        label = {
-                            Text("Total Labour")
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Button(
-                        onClick = {
-                           navController.navigate("camera")
-                        },
-                        enabled = !state.isSaving && !success,
-                        modifier = Modifier.fillMaxWidth()
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = PageBackground
+                        )
                     ) {
-                        Text(if (state.photoPaths.isEmpty())
-                        {"Take photo"
-
-                           } else {
-                               "add another photo"
-                        }
-
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // show how many photos are attached.
-                    Text("${state.photoPaths.size} photos attached")
-
-                    // show each photo attached to the form before saving the worksheet.
-                    state.photoPaths.forEach { photoPath ->
-                        Spacer(modifier = Modifier.height(12.dp))
-
                         AndroidView(
-                            factory = { context ->
+                            factory = { context->
                                 ImageView(context).apply {
-                                    // Fit the whole picture without stretching it .
-                                    scaleType = ImageView.ScaleType.FIT_CENTER
-                                    contentDescription = "Worksheet attachment"
+                                    scaleType =
+                                        ImageView.ScaleType.FIT_CENTER
+
+                                    contentDescription =
+                                        "Worksheet attachment"
                                 }
                             },
+
                             update = { imageView ->
-                                // Load the picture only when its address changes.
-                                if( imageView.tag != photoPath){
-                                    imageView.setImageURI(Uri.parse(photoPath))
+                                if (imageView.tag != photoPath) {
+                                    imageView.setImageURI(
+                                        Uri.parse(photoPath)
+                                    )
                                     imageView.tag = photoPath
                                 }
                             },
+
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(240.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Button(
-                        onClick = {
-                            viewModel.validateAndAddWorkSheet()
-                        },
-                        enabled = !state.isSaving &&
-                            !success,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            if (state.isSaving) {
-                                "saving"
-                            } else {
-                                "save Worksheet "
-                            }
+                                .height(220.dp)
                         )
                     }
                 }
+            }
+
+            Spacer(Modifier.height(12.dp))
             }
         }
     }
 
-    LaunchedEffect(success) {
-        if (success) {
-            navController.navigate("home"){
-                popUpTo("add"){
-                    inclusive = true
-                }
-            }
-            viewModel.resetSuccessState()
+
+@Composable
+private  fun WorkHubSection(
+    title: String,
+    content: @Composable ColumnScope.( ) -> Unit
+){
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 3.dp
+        )
+    ){
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Navy
+            )
+
+            HorizontalDivider(
+                color = BorderColor
+            )
+            content()
         }
     }
 }
+
+@Composable
+private fun WorkHubField(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    numeric: Boolean = false,
+    singleLine: Boolean = true
+){
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = {
+            Text(label)
+        },
+        modifier = Modifier.fillMaxWidth(),
+        singleLine = singleLine,
+        minLines = if (singleLine) 1 else 3,
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (numeric)
+            {
+                KeyboardType.Decimal
+            } else{
+                KeyboardType.Text
+            }
+        ),
+        shape = RoundedCornerShape(14.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Teal,
+            focusedLabelColor = Teal,
+            unfocusedBorderColor = BorderColor
+        )
+    )
+}
+
 
 @Composable
 private fun BooleanRow(
@@ -470,47 +574,24 @@ private fun BooleanRow(
 ){
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
     ) {
 
-        Text(label)
-
-        Spacer(
-            modifier = Modifier.weight(1f)
-        )
+        Text(
+            text = label,
+            modifier = Modifier.weight(1f),
+            color = Navy,
+            fontWeight = FontWeight.Medium
+            )
 
         Switch(
             checked = checked,
-            onCheckedChange = onCheckedChange
-        )
-    }
-}
-
-@Composable
-fun WorkSheetSection(
-    title: String,
-    content: @Composable() -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp),
-
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp
-        ),
-
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(modifier = Modifier.padding(16.dp)
-        ) {
-
-            Text(
-                text = title,
-                style = MaterialTheme.typography
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedTrackColor = Teal
             )
-        }
+        )
     }
 }
