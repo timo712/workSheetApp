@@ -34,17 +34,32 @@ import androidx.compose.ui.unit.dp
 import java.util.UUID
 import  android.net.Uri
 import android.widget.ImageView
+import androidx.compose.foundation.background
 import androidx.compose.ui.viewinterop.AndroidView
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.TextButton
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.graphics.Color
 
 @Composable
 fun CameraScreen(
@@ -189,26 +204,52 @@ fun CameraScreen(
                 modifier = Modifier.fillMaxSize()
             )
 
-            Button(
-                onClick = {
-                    isSaving = true
-
-                    takePhoto(
-                        context = context,
-                        controller = controller,
-                        onPhotoSaved = { uri ->
-                            capturedPhotoUri = uri
-                        },
-                        onFinished = { isSaving = false }
-                    )
-                },
-                enabled = !isSaving,
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .navigationBarsPadding()
-                    .padding(16.dp)
-            ) {
-                Text(if (isSaving) "saving.." else "Take photo")
+                    .padding(bottom = 24.dp),
+                horizontalAlignment =  Alignment.CenterHorizontally
+            ){
+                IconButton(
+                    onClick = {
+                        isSaving = true
+
+                        takePhoto(
+                            context = context,
+                            controller = controller,
+                            onPhotoSaved = {
+                                uri ->  capturedPhotoUri = uri
+                            },
+                            onFinished = {
+                                isSaving = false
+                            }
+                        )
+                    },
+                    enabled = !isSaving,
+                    modifier = Modifier
+                        .size(82.dp)
+                        .border(
+                            width = 5.dp,
+                            color = Color.White,
+                            shape = CircleShape
+                        )
+                        .padding(7.dp)
+                        .background(
+                            color = Color.White,
+                            shape = CircleShape
+                        )
+                ) { // empty for the circle itself
+
+                }
+
+                Spacer(
+                    modifier = Modifier.height(8.dp)
+                )
+                Text(
+                    text = if (isSaving) "Saving... " else "Take photo",
+                    color = Color.White
+                )
             }
         }
     } else {
